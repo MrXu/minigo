@@ -1,8 +1,10 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/context"
+	"github.com/julienschmidt/httprouter"
 	"github.com/justinas/alice"
 	"log"
 	"net/http"
@@ -11,6 +13,7 @@ import (
 
 func main() {
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler)
+	router := httprouter.New()
 	http.Handle("/", commonHandlers.ThenFunc(indexHandler))
 	http.Handle("/about", commonHandlers.ThenFunc(aboutHandler))
 	http.Handle("/admin", commonHandlers.Append(authHandler).ThenFunc(adminHandler))
@@ -69,7 +72,7 @@ func authHandler(next http.Handler) http.Handler {
 	return http.HandlerFunc(fn)
 }
 
-func adminHandler(w http.ResponseWriter, r *http.Requests) {
+func adminHandler(w http.ResponseWriter, r *http.Request) {
 	user := context.Get(r, "user")
 	json.NewEncoder(w).Encode(user)
 }
