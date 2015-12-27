@@ -11,13 +11,17 @@ import (
 	"time"
 )
 
+type appContext struct {
+	db *sql.DB
+}
+
 func main() {
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler)
 	router := httprouter.New()
-	http.Handle("/", commonHandlers.ThenFunc(indexHandler))
-	http.Handle("/about", commonHandlers.ThenFunc(aboutHandler))
-	http.Handle("/admin", commonHandlers.Append(authHandler).ThenFunc(adminHandler))
-	http.ListenAndServe(":8080", nil)
+	router.GET("/", wrapHandler(commonHandlers.ThenFunc(indexHandler)))
+	router.GET("/about", wrapHandler(commonHandlers.ThenFunc(aboutHandler)))
+	router.GET("/admin", wrapHandler(commonHandlers.Append(authHandler).ThenFunc(adminHandler)))
+	http.ListenAndServe(":8080", router)
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -26,6 +30,13 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 
 func aboutHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "The about page\n")
+}
+
+func wrapHandler(h http.Handler) httprouter.Handle {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+		context.Set(r, "params", ps)
+		h.ServeHTTP(w, r)
+	}
 }
 
 func loggingHandler(next http.Handler) http.Handler {
