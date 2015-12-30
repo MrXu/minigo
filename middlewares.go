@@ -1,7 +1,6 @@
 package minigo
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"

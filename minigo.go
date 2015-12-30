@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/gorilla/context"
 	"github.com/julienschmidt/httprouter"
@@ -11,17 +10,13 @@ import (
 	"time"
 )
 
-type appContext struct {
-	db *sql.DB
-}
-
 func main() {
 	commonHandlers := alice.New(context.ClearHandler, loggingHandler, recoverHandler)
 	router := httprouter.New()
 	router.GET("/", wrapHandler(commonHandlers.ThenFunc(indexHandler)))
 	router.GET("/about", wrapHandler(commonHandlers.ThenFunc(aboutHandler)))
-	router.GET("/admin", wrapHandler(commonHandlers.Append(authHandler).ThenFunc(adminHandler)))
 	http.ListenAndServe(":8080", router)
+
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
@@ -63,27 +58,4 @@ func recoverHandler(next http.Handler) http.Handler {
 	}
 
 	return http.HandlerFunc(fn)
-}
-
-func authHandler(next http.Handler) http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		authToken := r.Header().Get("Authorization")
-		user, err := getUser(authToken)
-
-		if err != nil {
-			http.Error(w, http.StatusText(401), 401)
-			return
-		}
-
-		context.Set(r, "user", user)
-		next.ServeHTTP(w, r)
-
-	}
-
-	return http.HandlerFunc(fn)
-}
-
-func adminHandler(w http.ResponseWriter, r *http.Request) {
-	user := context.Get(r, "user")
-	json.NewEncoder(w).Encode(user)
 }
